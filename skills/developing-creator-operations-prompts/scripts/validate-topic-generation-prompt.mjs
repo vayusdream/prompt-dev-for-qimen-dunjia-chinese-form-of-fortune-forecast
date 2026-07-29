@@ -40,6 +40,14 @@ for (const phrase of [
 if (!/exactly 5|恰好 5|固定为 5/.test(text)) fail("missing five-candidate invariant");
 pass("task mode terminology approval and candidate invariant");
 
+for (const phrase of [
+  "If `topic_discovery_prompt` is missing or unusable",
+  "`task_output` set to `{}`",
+]) {
+  if (!text.includes(phrase)) fail(`missing input handling: ${phrase}`);
+}
+pass("missing Topic Discovery Prompt handling");
+
 const match = text.match(
   /## Non-empty Generation Response example[\s\S]*?```json\n([\s\S]*?)\n```/,
 );
@@ -135,6 +143,8 @@ for (const proposal of batch.proposals) {
   }
   if (
     !Array.isArray(proposal.target_platforms) ||
+    proposal.target_platforms.length === 0 ||
+    new Set(proposal.target_platforms).size !== proposal.target_platforms.length ||
     proposal.target_platforms.some((item) => !platformValues.has(item))
   ) {
     fail("target platforms");
@@ -146,10 +156,23 @@ for (const proposal of batch.proposals) {
         !exactKeys(item, ["claim", "status", "source_reference_ids"]) ||
         !nonempty(item.claim) ||
         !["supported", "unverified_claim"].includes(item.status) ||
-        !Array.isArray(item.source_reference_ids),
+        !Array.isArray(item.source_reference_ids) ||
+        (item.status === "supported" && item.source_reference_ids.length === 0),
     )
   ) {
     fail("professional hypotheses");
+  }
+  if (
+    proposal.audience_basis.basis_type === "audience_question" &&
+    proposal.audience_basis.source_reference_ids.length === 0
+  ) {
+    fail("Audience Question requires a source reference");
+  }
+  if (
+    proposal.timeliness_basis.basis_type === "topic_signal" &&
+    proposal.timeliness_basis.source_reference_ids.length === 0
+  ) {
+    fail("Topic Signal requires a source reference");
   }
   for (const refs of [
     proposal.source_reference_ids,
@@ -164,15 +187,36 @@ const proposalIds = batch.proposals.map((item) => item.id);
 if (new Set(proposalIds).size !== proposalIds.length) fail("unique proposal IDs");
 pass("five proposal task payload shape");
 
-for (const proposal of batch.proposals) {
+for (const [index, proposal] of batch.proposals.entries()) {
+  const start = response.display_text.indexOf(proposal.title);
+  const nextTitle = batch.proposals[index + 1]?.title;
+  const end = nextTitle
+    ? response.display_text.indexOf(nextTitle, start + proposal.title.length)
+    : response.display_text.length;
+  if (start < 0 || end < 0) {
+    fail(`Display Text omits proposal section: ${proposal.id}`);
+  }
+  const section = response.display_text.slice(start, end);
   for (const reviewText of [
-    proposal.title,
     proposal.audience_basis.text,
     proposal.core_question,
     proposal.content_angle,
+    proposal.content_goal,
+    proposal.timeliness_basis.summary,
+    proposal.differentiation,
+    proposal.duplication_note,
+    ...proposal.target_platforms,
+    ...(proposal.professional_hypotheses.length ? [] : ["专业假设：无"]),
   ]) {
-    if (!response.display_text.includes(reviewText)) {
+    if (!section.includes(reviewText)) {
       fail(`Display Text omits proposal review content: ${proposal.id}`);
+    }
+  }
+  const normalizedSection = section.replace(/[。；]/g, "");
+  for (const hypothesis of proposal.professional_hypotheses) {
+    const normalizedClaim = hypothesis.claim.replace(/[。；]/g, "");
+    if (!normalizedSection.includes(normalizedClaim)) {
+      fail(`Display Text omits professional hypothesis: ${proposal.id}`);
     }
   }
 }

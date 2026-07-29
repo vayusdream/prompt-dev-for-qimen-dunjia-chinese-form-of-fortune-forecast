@@ -6,11 +6,13 @@ Do not say complete, ready, fixed, valid, or passed until fresh commands exit su
 
 Record:
 
-- absolute working directory;
+- the working directory used for execution;
 - exact, copy-pasteable command block without ellipses or paraphrase;
 - exit code;
 - actual output;
 - commit or compared version.
+
+Keep raw terminal evidence in the active session. In a version-controlled report, do not publish a machine-specific username, home directory, temporary path, credential, or token merely to make the evidence literal. Replace only that sensitive path or secret with an explicit marker such as `[machine-specific path redacted]`, state that sanitization occurred, and preserve the command, exit code, and all semantically relevant output unchanged. Identify the working directory as the repository root or worktree root and include a copy-pasteable command such as `git rev-parse --show-toplevel` when the local absolute value is intentionally omitted.
 
 Every recorded check must run without `|| true`, ignored exit codes, or another construct that can convert failure into success. If a command errors, record it as failed, correct it, and rerun the corrected command. A later passing command does not erase the failed check.
 
