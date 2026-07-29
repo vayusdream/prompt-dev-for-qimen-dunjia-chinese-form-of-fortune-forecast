@@ -196,4 +196,10 @@ execFileSync(
   { stdio: "inherit" },
 );
 pass("Topic Generation Task Prompt validator");
+execFileSync(
+  process.execPath,
+  [path.join(scriptDir, "validate-content-master-prompt.mjs"), root],
+  { stdio: "inherit" },
+);
+pass("Content Master Task Prompt validator");
 console.log("RESULT creator-operations-base-v1 validation: PASS");
