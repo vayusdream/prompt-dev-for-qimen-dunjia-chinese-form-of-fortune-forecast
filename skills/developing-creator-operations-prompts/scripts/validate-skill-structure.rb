@@ -66,6 +66,7 @@ pass_check.call("agents/openai.yaml interface metadata")
 required_scripts = %w[
   validate-base-package.mjs
   validate-content-master-prompt.mjs
+  validate-platform-adaptation-prompt.mjs
   validate-skill-structure.rb
   validate-topic-generation-prompt.mjs
 ]

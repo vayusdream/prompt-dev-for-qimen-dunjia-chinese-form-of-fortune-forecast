@@ -202,4 +202,10 @@ execFileSync(
   { stdio: "inherit" },
 );
 pass("Content Master Task Prompt validator");
+execFileSync(
+  process.execPath,
+  [path.join(scriptDir, "validate-platform-adaptation-prompt.mjs"), root],
+  { stdio: "inherit" },
+);
+pass("Platform Adaptation Task Prompt validator");
 console.log("RESULT creator-operations-base-v1 validation: PASS");
